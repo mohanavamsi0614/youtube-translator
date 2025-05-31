@@ -36,7 +36,7 @@ app.post('/' , async(req , res)=>{
         model: "chatgpt-4o-latest",
         messages: [
             { role: 'system', content: 'You are a helpful assistant.' },
-            { role: 'user', content: `Summarize the following transcript in telugu in a understandble way:\n\n${result}` }
+            { role: 'user', content: `convert the following transcript in telugu in a understandble way and also in elobrated way:\n\n${result}` }
         ],
     }).then((response) => {
         const summary = response.choices[0].message.content;
