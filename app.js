@@ -1,57 +1,54 @@
-import TranscriptAPI from 'youtube-transcript-api';
-import express from "express"
-import cors from "cors"; 
-import openai from 'openai';
-import dotenv from 'dotenv';
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import OpenAI from "openai";
+import transcribe from "./transcriber.js";
+
 dotenv.config();
-const { OpenAI } = openai;
-const openaiClient = new OpenAI({
-    apiKey: process.env.open_api,
-});
 
 const app = express();
-app.use(cors())
+app.use(cors());
 app.use(express.json());
 
-app.get('/', (req, res) => {
-    res.send('YouTube Transcript API is running!');
-    }
-);
+const openai = new OpenAI({
+  apiKey: process.env.open_api,
+});
 
-app.post('/' , async(req , res)=>{
+app.get("/", (req, res) => {
+  res.send("YouTube → Telugu Summary API is running");
+});
 
-    const { videoId } = req.body;
-    if (!videoId) {
-        return res.status(400).json({ error: 'Video ID is required' });
-    }
-    try{
-    const transcript= await TranscriptAPI.getTranscript(videoId)
-    let result;
-    transcript.forEach(element => {
-        result += element.text + ' ';
+app.post("/", async (req, res) => {
+  const { url } = req.body;
+  console.log("Received URL:", url);
+
+  if (!url) {
+    return res.status(400).json({ error: "YouTube URL is required" });
+  }
+
+  try {
+//     // 1️⃣ Fetch transcript from YouTube
+    const text = await transcribe(url);
+    console.log("Extracted Transcript:", text);
+
+    // 2️⃣ Generate Telugu summary
+    const response = await openai.responses.create({
+      model: "gpt-4.1-mini",
+      input: `Summarize the following YouTube video content in clear, easy-to-understand, and elaborated Telugu:\n\n${text}`,
     });
-    result= result.trim();
 
-    openaiClient.chat.completions.create({
-        model: "chatgpt-4o-latest",
-        messages: [
-            { role: 'system', content: 'You are a helpful assistant.' },
-            { role: 'user', content: `convert the following transcript in telugu in a understandble way and also in elobrated way:\n\n${result}` }
-        ],
-    }).then((response) => {
-        const summary = response.choices[0].message.content;
-        return res.json({ summary });
-    }).catch((error) => {
-        console.error('Error generating summary:', error);
-        return res.status(500).json({ error: 'Failed to generate summary' });
+    res.json({
+      summary: response.output_text,
+    });
 
-    })
-    }
-    catch (error) {
-        return res.status(500).json({ error: 'Failed to fetch transcript' });
-    }
-})
+  } catch (error) {
+    console.error("Error:", error.message);
+    res.status(500).json({
+      error: "Failed to extract transcript or generate summary",
+    });
+  }
+});
+
 app.listen(3000, () => {
-    console.log('Server is running on port 3000');
-}
-);
+  console.log("Server running on port 3000");
+});
