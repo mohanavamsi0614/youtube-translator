@@ -13,7 +13,7 @@ async function handlesubmit() {
   const videoId = url.split('.be/')[1]?.split('?')[0];
   console.log("Video ID:", videoId);
   try{
-    const res=await axios.post("http://localhost:3000", { url, videoId });
+    const res=await axios.post("https://youtube-translator.onrender.com", { url, videoId });
     setResult(res.data.summary);
     setLoading(false);
   }
